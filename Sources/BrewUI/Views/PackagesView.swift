@@ -1,0 +1,297 @@
+import SwiftUI
+
+struct PackagesView: View {
+    let title: String
+    let packages: [BrewPackage]
+    @ObservedObject var store: BrewStore
+    let emptyMessage: String
+    @State private var packageFilter: BrewPackageFilter = .all
+
+    private var filteredPackages: [BrewPackage] {
+        packages.filter(packageFilter.includes)
+    }
+
+    private var selectedVisiblePackage: BrewPackage? {
+        filteredPackages.first { $0.id == store.selectedPackageID }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HeaderBar(title: title, count: filteredPackages.count, totalCount: packages.count, isBusy: store.isLoading || store.isRunningCommand) {
+                Picker("Package Kind", selection: $packageFilter) {
+                    ForEach(BrewPackageFilter.allCases) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 270)
+            }
+
+            if filteredPackages.isEmpty {
+                ContentUnavailableView(packages.isEmpty ? emptyMessage : "No packages match this filter.", systemImage: "shippingbox")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Table(filteredPackages, selection: $store.selectedPackageID) {
+                    TableColumn("Name") { package in
+                        HStack(spacing: 8) {
+                            Image(systemName: package.kind == .cask ? "macwindow" : "terminal")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 16)
+                            Text(package.name)
+                                .lineLimit(1)
+                        }
+                    }
+                    TableColumn("Kind") { package in
+                        Text(package.kind.rawValue)
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(80)
+                    TableColumn("Version") { package in
+                        Text(package.versionSummary)
+                            .lineLimit(1)
+                            .foregroundStyle(package.isOutdated ? .orange : .secondary)
+                    }
+                }
+                .contextMenu(forSelectionType: BrewPackage.ID.self) { selection in
+                    if let id = selection.first, let package = filteredPackage(id: id) {
+                        packageMenu(for: package)
+                    }
+                } primaryAction: { selection in
+                    if let id = selection.first, let package = filteredPackage(id: id) {
+                        Task { await store.showInfo(for: package) }
+                    }
+                }
+            }
+
+            if let package = selectedVisiblePackage {
+                PackageActionBar(package: package, store: store)
+            }
+
+            if store.activeResult != nil {
+                CommandOutputView(result: store.activeResult, history: store.commandHistory) {
+                    store.clearActiveResult()
+                }
+                    .padding(12)
+                    .frame(maxHeight: 320)
+            }
+        }
+        .sheet(item: $store.packageInfo) { info in
+            PackageInfoSheet(info: info) {
+                store.closePackageInfo()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func packageMenu(for package: BrewPackage) -> some View {
+        Button("Show Info") {
+            Task { await store.showInfo(for: package) }
+        }
+        Button("Upgrade") {
+            Task { await store.upgrade(package) }
+        }
+        Button("Uninstall") {
+            Task { await store.uninstall(package) }
+        }
+    }
+
+    private func filteredPackage(id: BrewPackage.ID) -> BrewPackage? {
+        filteredPackages.first { $0.id == id }
+    }
+}
+
+struct PackageInfoSheet: View {
+    let info: BrewPackageInfo
+    let close: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: info.package.kind == .cask ? "macwindow" : "terminal")
+                    .font(.title2)
+                    .frame(width: 34, height: 34)
+                    .brewGlass(cornerRadius: 10)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(info.package.name)
+                        .font(.title2.weight(.semibold))
+                    Text(info.headline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Button(action: close) {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.borderless)
+                .keyboardShortcut(.cancelAction)
+            }
+            .padding(20)
+            .background(.bar)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    InfoSummaryGrid(info: info)
+
+                    if let description = info.description {
+                        InfoSectionView(title: "Description", content: description)
+                    }
+
+                    if let status = info.status {
+                        InfoSectionView(title: "Status", content: status)
+                    }
+
+                    ForEach(info.sections) { section in
+                        InfoSectionView(title: section.title, content: section.body)
+                    }
+
+                    Text(info.command)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .textSelection(.enabled)
+                }
+                .padding(20)
+            }
+        }
+        .frame(width: 720, height: 640)
+    }
+}
+
+struct InfoSummaryGrid: View {
+    let info: BrewPackageInfo
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
+            InfoSummaryItem(title: "Kind", value: info.package.kind.rawValue, systemImage: info.package.kind == .cask ? "macwindow" : "terminal")
+            InfoSummaryItem(title: "Version", value: info.package.versionSummary, systemImage: "number")
+            if let homepage = info.homepage {
+                Link(destination: homepage) {
+                    InfoSummaryItem(title: "Homepage", value: homepage.host() ?? homepage.absoluteString, systemImage: "link")
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+struct InfoSummaryItem: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: systemImage)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .brewGlass(cornerRadius: 12)
+    }
+}
+
+struct InfoSectionView: View {
+    let title: String
+    let content: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+            Text(content)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .brewGlass(cornerRadius: 12)
+    }
+}
+
+struct HeaderBar<Accessory: View>: View {
+    let title: String
+    let count: Int
+    let totalCount: Int?
+    let isBusy: Bool
+    @ViewBuilder var accessory: Accessory
+
+    init(title: String, count: Int, totalCount: Int? = nil, isBusy: Bool, @ViewBuilder accessory: () -> Accessory = { EmptyView() }) {
+        self.title = title
+        self.count = count
+        self.totalCount = totalCount
+        self.isBusy = isBusy
+        self.accessory = accessory()
+    }
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.title2.weight(.semibold))
+            Text(countText)
+                .foregroundStyle(.secondary)
+            Spacer()
+            accessory
+            if isBusy {
+                ProgressView()
+                    .controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .background(.bar)
+    }
+
+    private var countText: String {
+        guard let totalCount, totalCount != count else {
+            return "\(count)"
+        }
+        return "\(count) of \(totalCount)"
+    }
+}
+
+struct PackageActionBar: View {
+    let package: BrewPackage
+    @ObservedObject var store: BrewStore
+
+    var body: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(package.name)
+                    .font(.headline)
+                Text(package.versionSummary)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Button {
+                Task { await store.showInfo(for: package) }
+            } label: {
+                Label("Info", systemImage: "info.circle")
+            }
+            .disabled(store.isRunningCommand)
+            Button {
+                Task { await store.upgrade(package) }
+            } label: {
+                Label("Upgrade", systemImage: "square.and.arrow.up")
+            }
+            .disabled(store.isRunningCommand)
+            Button(role: .destructive) {
+                Task { await store.uninstall(package) }
+            } label: {
+                Label("Uninstall", systemImage: "trash")
+            }
+            .disabled(store.isRunningCommand)
+        }
+        .padding(12)
+        .brewGlass(cornerRadius: 0)
+    }
+}
