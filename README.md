@@ -46,7 +46,7 @@ GitHub: [buiducnhat/brewui](https://github.com/buiducnhat/brewui)
 
 ## Author
 
-Duc Nhat Bui ([@buiducnhat](https://github.com/buiducnhat))
+Nhat Bui ([@buiducnhat](https://github.com/buiducnhat))
 
 ## License
 
