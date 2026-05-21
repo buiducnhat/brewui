@@ -1,77 +1,54 @@
-# Dependencies
-node_modules
-.pnp
-.pnp.js
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
 
-# Build outputs
-dist
-build
-.build
-.swiftpm
-*.tsbuildinfo
+# Swift Package Manager
+.build/
+.swiftpm/
 
-# Nextjs
-.next/
-out/
-next-env.d.ts
+# Xcode and local build products
+DerivedData/
+build/
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
 
-# Tanstack
-.tanstack/
+# BrewUI generated artifacts
+dist/
 
-# Expo
-.expo/
-expo-env.d.ts
-apps/expo/.gitignore
-apps/expo/ios
-apps/expo/android
+# Logs and diagnostics
+logs/
+*.log
+*.crash
+*.ips
 
-# WXT
-.wxt/
-web-ext.config.ts
-.output/
-
-# Environment variables
+# Environment and local secrets
 .env
-.env*.local
+.env.*
+!.env.example
 
-# IDEs and editors
+# Temporary files
+.cache/
+tmp/
+temp/
+*.tmp
+
+# Editor and IDE settings
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-.idea
+.idea/
 *.swp
 *.swo
 *~
-.DS_Store
 
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-
-# Turbo
-.turbo
-
-# Better-T-Stack
-.alchemy
-
-# Testing
-coverage
-.nyc_output
-
-# Misc
-*.tgz
-.cache
-tmp
-temp
-
-# AI IDEs
+# Local agent/tooling state
 .mcp.json
 skills-lock.json
 .agents/
@@ -80,13 +57,12 @@ skills-lock.json
 .opencode/
 .shared/
 .cursor/
-.codex/
+.rtk/
 CLAUDE.md
-AGENTS.md
 docs/plans/
 docs/brainstorms/
-.rtk/
-!.codex/
+
+# Keep the project Codex Run action tracked, ignore other local Codex state.
+.codex/*
 !.codex/environments/
 !.codex/environments/environment.toml
-!AGENTS.md
