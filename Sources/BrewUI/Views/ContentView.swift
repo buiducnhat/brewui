@@ -54,6 +54,7 @@ struct DetailView: View {
             PackagesView(
                 title: "Installed Packages",
                 packages: store.installedPackages,
+                packageFilter: $store.installedPackageFilter,
                 store: store,
                 emptyMessage: "No installed formulae or casks were found."
             )
@@ -61,6 +62,7 @@ struct DetailView: View {
             PackagesView(
                 title: "Outdated Packages",
                 packages: store.outdatedPackages,
+                packageFilter: $store.outdatedPackageFilter,
                 store: store,
                 emptyMessage: "Everything is current."
             )

@@ -13,10 +13,18 @@ struct DashboardView: View {
                 )
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 12)], spacing: 12) {
-                    MetricCard(title: "Formulae", value: "\(store.formulaCount)", systemImage: "terminal")
-                    MetricCard(title: "Casks", value: "\(store.caskCount)", systemImage: "macwindow")
-                    MetricCard(title: "Outdated", value: "\(store.outdatedPackages.count)", systemImage: "exclamationmark.arrow.triangle.2.circlepath")
-                    MetricCard(title: "Taps", value: "\(store.taps.count)", systemImage: "tray.2")
+                    MetricCard(title: "Formulae", value: "\(store.formulaCount)", systemImage: "terminal") {
+                        store.navigate(to: .installed, packageFilter: .formulae)
+                    }
+                    MetricCard(title: "Casks", value: "\(store.caskCount)", systemImage: "macwindow") {
+                        store.navigate(to: .installed, packageFilter: .casks)
+                    }
+                    MetricCard(title: "Outdated", value: "\(store.outdatedPackages.count)", systemImage: "exclamationmark.arrow.triangle.2.circlepath") {
+                        store.navigate(to: .outdated)
+                    }
+                    MetricCard(title: "Taps", value: "\(store.taps.count)", systemImage: "tray.2") {
+                        store.navigate(to: .taps)
+                    }
                 }
 
                 SectionBox(title: "Next Actions") {
@@ -61,13 +69,39 @@ struct MetricCard: View {
     let title: String
     let value: String
     let systemImage: String
+    let action: (() -> Void)?
+
+    init(title: String, value: String, systemImage: String, action: (() -> Void)? = nil) {
+        self.title = title
+        self.value = value
+        self.systemImage = systemImage
+        self.action = action
+    }
 
     var body: some View {
+        Group {
+            if let action {
+                Button(action: action) {
+                    cardContent
+                }
+                .buttonStyle(.plain)
+            } else {
+                cardContent
+            }
+        }
+    }
+
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: systemImage)
                     .foregroundStyle(.secondary)
                 Spacer()
+                if action != nil {
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
             }
             Text(value)
                 .font(.system(size: 34, weight: .semibold, design: .rounded))
@@ -76,7 +110,7 @@ struct MetricCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .brewGlass(cornerRadius: 14)
+        .brewGlass(cornerRadius: 14, interactive: action != nil)
     }
 }
 

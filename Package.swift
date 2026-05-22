@@ -10,9 +10,15 @@ let package = Package(
     products: [
         .executable(name: "BrewUI", targets: ["BrewUI"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.9.2")
+    ],
     targets: [
         .executableTarget(
             name: "BrewUI",
+            dependencies: [
+                .product(name: "Sparkle", package: "Sparkle")
+            ],
             path: "Sources/BrewUI"
         )
     ]

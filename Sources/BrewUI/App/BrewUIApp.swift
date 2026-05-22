@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -11,7 +12,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct BrewUIApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var store = BrewStore(client: BrewClient())
+    @StateObject private var store: BrewStore
+    private let updaterController: SPUStandardUpdaterController?
+
+    init() {
+        _store = StateObject(wrappedValue: BrewStore(client: BrewClient()))
+        if AppConfiguration.updatesAreConfigured {
+            updaterController = SPUStandardUpdaterController(
+                startingUpdater: true,
+                updaterDelegate: nil,
+                userDriverDelegate: nil
+            )
+        } else {
+            updaterController = nil
+        }
+    }
 
     var body: some Scene {
         WindowGroup("BrewUI", id: "main") {
@@ -23,11 +38,16 @@ struct BrewUIApp: App {
         }
         .windowResizability(.contentMinSize)
         .commands {
+            if let updaterController {
+                CommandGroup(after: .appInfo) {
+                    CheckForUpdatesView(updater: updaterController.updater)
+                }
+            }
             BrewCommands(store: store)
         }
 
         Settings {
-            SettingsView(store: store)
+            SettingsView(store: store, updater: updaterController?.updater)
         }
     }
 }

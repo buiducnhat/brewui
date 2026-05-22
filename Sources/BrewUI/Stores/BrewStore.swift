@@ -13,6 +13,8 @@ final class BrewStore: ObservableObject {
     @Published private(set) var isRunningCommand = false
     @Published var selectedSection: BrewSection = .dashboard
     @Published var selectedPackageID: BrewPackage.ID?
+    @Published var installedPackageFilter: BrewPackageFilter = .all
+    @Published var outdatedPackageFilter: BrewPackageFilter = .all
     @Published var searchTerm = ""
     @Published var errorMessage: String?
 
@@ -121,6 +123,20 @@ final class BrewStore: ObservableObject {
 
     func closePackageInfo() {
         packageInfo = nil
+    }
+
+    func navigate(to section: BrewSection, packageFilter: BrewPackageFilter? = nil) {
+        selectedPackageID = nil
+        selectedSection = section
+
+        switch section {
+        case .installed:
+            installedPackageFilter = packageFilter ?? .all
+        case .outdated:
+            outdatedPackageFilter = packageFilter ?? .all
+        default:
+            break
+        }
     }
 
     private func runPackageCommand(_ arguments: [String]) async {

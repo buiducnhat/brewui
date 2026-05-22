@@ -3,9 +3,9 @@ import SwiftUI
 struct PackagesView: View {
     let title: String
     let packages: [BrewPackage]
+    @Binding var packageFilter: BrewPackageFilter
     @ObservedObject var store: BrewStore
     let emptyMessage: String
-    @State private var packageFilter: BrewPackageFilter = .all
 
     private var filteredPackages: [BrewPackage] {
         packages.filter(packageFilter.includes)
