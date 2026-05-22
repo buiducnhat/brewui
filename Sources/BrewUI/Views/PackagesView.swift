@@ -34,11 +34,15 @@ struct PackagesView: View {
                 Table(filteredPackages, selection: $store.selectedPackageID) {
                     TableColumn("Name") { package in
                         HStack(spacing: 8) {
-                            Image(systemName: package.kind == .cask ? "macwindow" : "terminal")
-                                .foregroundStyle(.secondary)
-                                .frame(width: 16)
-                            Text(package.name)
+                            PackageIconView(package: package, size: 16)
+                            Text(package.title)
                                 .lineLimit(1)
+                            if package.showsDisplayName {
+                                Text(package.name)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
                     }
                     TableColumn("Kind") { package in
@@ -51,6 +55,21 @@ struct PackagesView: View {
                             .lineLimit(1)
                             .foregroundStyle(package.isOutdated ? .orange : .secondary)
                     }
+                    TableColumn("Installed") { package in
+                        Text(BrewFormatters.formatPackageDate(package.installedAt))
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(110)
+                    TableColumn("Last Used") { package in
+                        Text(BrewFormatters.formatPackageDate(package.lastUsedAt))
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(110)
+                    TableColumn("Size") { package in
+                        Text(BrewFormatters.formatPackageSize(package.sizeBytes))
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(90)
                 }
                 .contextMenu(forSelectionType: BrewPackage.ID.self) { selection in
                     if let id = selection.first, let package = filteredPackage(id: id) {
@@ -107,13 +126,15 @@ struct PackageInfoSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
-                Image(systemName: info.package.kind == .cask ? "macwindow" : "terminal")
-                    .font(.title2)
-                    .frame(width: 34, height: 34)
+                PackageIconView(package: info.package, size: 34)
                     .brewGlass(cornerRadius: 10)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(info.package.name)
+                    Text(info.package.title)
                         .font(.title2.weight(.semibold))
+                    if info.package.showsDisplayName {
+                        Text(info.package.name)
+                            .foregroundStyle(.secondary)
+                    }
                     Text(info.headline)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -156,6 +177,26 @@ struct PackageInfoSheet: View {
     }
 }
 
+struct PackageIconView: View {
+    let package: BrewPackage
+    let size: CGFloat
+
+    var body: some View {
+        Group {
+            if let icon = CaskAppIconResolver.icon(for: package) {
+                Image(nsImage: icon)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: package.kind == .cask ? "macwindow" : "terminal")
+                    .font(.system(size: max(12, size * 0.58)))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: size, height: size)
+    }
+}
+
 struct InfoSummaryGrid: View {
     let info: BrewPackageInfo
 
@@ -163,6 +204,9 @@ struct InfoSummaryGrid: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
             InfoSummaryItem(title: "Kind", value: info.package.kind.rawValue, systemImage: info.package.kind == .cask ? "macwindow" : "terminal")
             InfoSummaryItem(title: "Version", value: info.package.versionSummary, systemImage: "number")
+            InfoSummaryItem(title: "Installed", value: BrewFormatters.formatPackageDate(info.package.installedAt), systemImage: "calendar")
+            InfoSummaryItem(title: "Last Used", value: BrewFormatters.formatPackageDate(info.package.lastUsedAt), systemImage: "clock")
+            InfoSummaryItem(title: "Size", value: BrewFormatters.formatPackageSize(info.package.sizeBytes), systemImage: "externaldrive")
             if let homepage = info.homepage {
                 Link(destination: homepage) {
                     InfoSummaryItem(title: "Homepage", value: homepage.host() ?? homepage.absoluteString, systemImage: "link")

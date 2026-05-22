@@ -39,6 +39,10 @@ struct BrewPackage: Identifiable, Hashable, Sendable {
     var installedVersion: String?
     var currentVersion: String?
     var description: String?
+    var displayName: String?
+    var installedAt: Date?
+    var lastUsedAt: Date?
+    var sizeBytes: Int64?
 
     var isOutdated: Bool {
         currentVersion != nil && currentVersion != installedVersion
@@ -55,6 +59,15 @@ struct BrewPackage: Identifiable, Hashable, Sendable {
         default:
             "Unknown"
         }
+    }
+
+    var title: String {
+        displayName?.isEmpty == false ? displayName! : name
+    }
+
+    var showsDisplayName: Bool {
+        guard let displayName, !displayName.isEmpty else { return false }
+        return displayName.localizedCaseInsensitiveCompare(name) != .orderedSame
     }
 }
 

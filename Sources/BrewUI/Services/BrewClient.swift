@@ -70,17 +70,17 @@ struct BrewClient: Sendable {
 
     func installedFormulae() async throws -> [BrewPackage] {
         let result = try await run(["list", "--formula", "--versions"])
-        return parseVersionList(result.output, kind: .formula)
+        return await enrichedPackages(from: parseVersionList(result.output, kind: .formula))
     }
 
     func installedCasks() async throws -> [BrewPackage] {
         let result = try await run(["list", "--cask", "--versions"])
-        return parseVersionList(result.output, kind: .cask)
+        return await enrichedPackages(from: parseVersionList(result.output, kind: .cask))
     }
 
     func outdated() async throws -> [BrewPackage] {
         let result = try await run(["outdated", "--verbose"])
-        return parseOutdated(result.output)
+        return await enrichedPackages(from: parseOutdated(result.output))
     }
 
     func taps() async throws -> [BrewTap] {
@@ -147,6 +147,14 @@ struct BrewClient: Sendable {
                 )
             }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    private func enrichedPackages(from packages: [BrewPackage]) async -> [BrewPackage] {
+        let executableURL = executableURL
+        return await Task.detached(priority: .utility) {
+            let resolver = BrewPackageMetadataResolver(brewExecutableURL: executableURL)
+            return packages.map(resolver.enriched)
+        }.value
     }
 
     private func parseOutdated(_ output: String) -> [BrewPackage] {
