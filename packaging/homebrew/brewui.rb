@@ -1,6 +1,6 @@
 cask "brewui" do
-  version "0.0.1"
-  sha256 "416f7f78ccd53522a6a3facdd1f8d164abb48a70a3a1172e4f37e5dda50eb869"
+  version "0.0.2"
+  sha256 "74909d510f64aa5d68ae91cc479492e346d019694e493af6f9fa4e453a223e54"
 
   url "https://github.com/buiducnhat/brewui/releases/download/v#{version}/BrewUI-#{version}.zip"
   name "BrewUI"
